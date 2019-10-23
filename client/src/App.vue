@@ -2,12 +2,12 @@
   <v-app>
 
     <navigation></navigation>
-
     <v-content>
-      <v-container>
-      <router-view></router-view>
+      <v-container fluid>
+        <router-view></router-view>
       </v-container>
     </v-content>
+
   </v-app>
 </template>
 
