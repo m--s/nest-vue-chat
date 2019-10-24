@@ -1,61 +1,77 @@
 <template>
-  <v-card width="320px" class="ma-2" dense>
-    <chat-toolbar :name="name" @onClose="onChatClose"></chat-toolbar>
-
-    <v-list class="overflow-y-auto messages-container pa-2" ref='messagesContainer'>
-      <chat-message v-for="(msg, i) in messages"
-                    v-bind:key="i"
-                    :text="msg.text" :name="msg.name" :orientation="msg.orientation"/>
-    </v-list>
-
-    <v-card-actions>
-      <v-textarea
-        v-model="newMessage"
-        @keyup.enter.exact="submitMessage"
-        no-resize solo flat placeholder="Type here..." rows="1"></v-textarea>
-      <v-btn class="pa-1" icon @click="submitMessage">
-        <v-icon>mdi-send</v-icon>
-      </v-btn>
-    </v-card-actions>
-  </v-card>
-
+  <chat-window :name="name" :recipientName="recipientName" :messages="messages"
+               @onSubmitMessage="submitMessage" />
 </template>
 
 <script>
-import ChatToolbar from './ChatToolbar.vue';
-import ChatMessage from './ChatMessage.vue';
+import ChatWindow from './ChatWindow.vue';
 
 export default {
   name: 'chat',
-  props: ['name'],
-  components: { ChatToolbar, ChatMessage },
+  props: {
+    name: String,
+    recipientName: String,
+    recipientId: String,
+    userType: {
+      type: String,
+      validator: value => (['host', 'client'].includes(value)),
+    },
+  },
+  components: { ChatWindow },
   data: () => ({
     messages: [],
-    newMessage: '',
   }),
-
+  sockets: {
+    newMessage(message) {
+      this.onNewMessage(message);
+    },
+    messages(messages) {
+      messages.forEach(message => this.onNewMessage(message));
+    },
+  },
   methods: {
     onChatClose() {
     },
-    scrollMessagesToBottom() {
-      const { messagesContainer } = this.$refs;
-      messagesContainer.$el.scrollTop = messagesContainer.$el.scrollHeight;
+    submitMessage(message) {
+      this.$socket.client.emit('sendMessage', {
+        from: this.name,
+        fromId: this.$socket.client.id,
+        to: this.recipientId,
+        text: message,
+      });
     },
-    submitMessage() {
-      if (this.newMessage.trim().length === 0) {
+    onNewMessage(message) {
+      if (!this.shouldRenderMessage(message)) {
         return;
       }
 
-      // todo send message through websocket
+      let orientation = 'left';
+      if (message.from === this.name) {
+        orientation = 'right';
+      }
 
-      this.newMessage = '';
-      this.$nextTick(function () {
-        this.scrollMessagesToBottom();
-      });
+      this.messages = [...this.messages, { text: message.text, name: message.from, orientation }];
+    },
+    connect() {
+      this.$socket.client.emit('userConnected', { name: this.name, userType: this.userType });
+    },
+    getArchiveMessages() {
+      if (this.recipientId) {
+        this.$socket.client.emit('getMessages', this.recipientId);
+      }
+    },
+    shouldRenderMessage(message) {
+      if (this.recipientId) {
+        if (message.fromId !== this.recipientId && message.to !== this.recipientId) {
+          return false;
+        }
+      }
+      return true;
     },
   },
   mounted() {
-    this.scrollMessagesToBottom();
+    this.connect();
+    this.getArchiveMessages();
   },
 };
 </script>

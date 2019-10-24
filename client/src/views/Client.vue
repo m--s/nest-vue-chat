@@ -16,15 +16,16 @@
           v-model="name"
           label="Name"
           required
+          @keyup.enter.exact="connect"
         ></v-text-field>
       </v-card-text>
 
       <v-card-actions>
-        <v-btn class="primary mx-auto flex-fill" @click="connected = true">Log in</v-btn>
+        <v-btn class="primary mx-auto flex-fill" @click="connect">Log in</v-btn>
       </v-card-actions>
     </v-card>
 
-    <chat name="Host" v-if="connected" />
+    <chat :name="this.name" recipientName="Host" v-if="connected" userType="client" />
 
   </v-container>
 </template>
@@ -48,6 +49,11 @@ export default {
     getRandomName() {
       const rand = Math.round(Math.random() * 100);
       return `Anonymous${rand}`;
+    },
+    connect() {
+      if (this.name) {
+        this.connected = true;
+      }
     },
   },
 };

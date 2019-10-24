@@ -2,8 +2,8 @@
   <v-container fluid>
   <v-row>
     <chat
-      v-for="chat in chats"
-      :key="chat" :name="chat.name" />
+      v-for="room in rooms" userType="host"
+      :key="room.id" name="Host" :recipientName="room.name" :recipientId="room.id" />
   </v-row>
   </v-container>
 </template>
@@ -14,8 +14,22 @@ import Chat from '@/components/chat/Chat.vue';
 export default {
   name: 'host',
   components: { Chat },
+  sockets: {
+    activeRooms(rooms) {
+      this.rooms = rooms;
+    },
+    newRoom(room) {
+      this.rooms = [...this.rooms, room];
+    },
+    userDisconnected(roomId) {
+      this.rooms = this.rooms.filter(room => room.id !== roomId);
+    },
+  },
   data: () => ({
-    chats: [],
+    rooms: [],
   }),
+  mounted() {
+    this.$socket.client.emit('getActiveRooms');
+  },
 };
 </script>
