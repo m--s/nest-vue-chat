@@ -27,7 +27,6 @@ import ChatToolbar from './ChatToolbar.vue';
 import ChatMessage from './ChatMessage.vue';
 
 export default {
-  name: 'chat-window',
   props: {
     name: String,
     recipientName: String,

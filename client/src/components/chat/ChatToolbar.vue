@@ -17,7 +17,6 @@
 
 <script>
 export default {
-  name: 'chat-toolbar',
   components: {},
   props: ['name'],
   data: () => ({}),

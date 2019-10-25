@@ -7,7 +7,6 @@
 import ChatWindow from './ChatWindow.vue';
 
 export default {
-  name: 'chat',
   props: {
     name: String,
     recipientName: String,
@@ -31,6 +30,7 @@ export default {
   },
   methods: {
     onChatClose() {
+      this.$emit('onChatClose');
     },
     submitMessage(message) {
       this.$socket.client.emit('sendMessage', {
@@ -44,11 +44,7 @@ export default {
       if (!this.shouldRenderMessage(message)) {
         return;
       }
-
-      let orientation = 'left';
-      if (message.from === this.name) {
-        orientation = 'right';
-      }
+      const orientation = this.getMessageOrientation(message);
 
       this.messages = [...this.messages, { text: message.text, name: message.from, orientation }];
     },
@@ -67,6 +63,13 @@ export default {
         }
       }
       return true;
+    },
+    getMessageOrientation(message) {
+      let orientation = 'left';
+      if (message.fromId === this.$socket.client.id) {
+        orientation = 'right';
+      }
+      return orientation;
     },
   },
   mounted() {
