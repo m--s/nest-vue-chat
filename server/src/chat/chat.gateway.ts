@@ -10,13 +10,15 @@ import {InjectRepository} from "@nestjs/typeorm";
 import {Repository} from "typeorm";
 import {Message} from "./db/message.entity";
 import SendMessageBody from "./dto/SendMessageBody";
+import UserConnectedBody from "./dto/UserConnectedBody";
+import Room from "./dto/Room";
 
 @WebSocketGateway()
 export class ChatGateway implements OnGatewayDisconnect {
 
     private logger: Logger = new Logger(this.constructor.name);
 
-    rooms: any[] = [];
+    rooms: Room[] = [];
     hosts: Socket[] = [];
 
     @WebSocketServer()
@@ -55,12 +57,10 @@ export class ChatGateway implements OnGatewayDisconnect {
     }
 
     @SubscribeMessage('userConnected')
-    userConnected(@ConnectedSocket() client: Socket, @MessageBody() payload: any): void {
+    userConnected(@ConnectedSocket() client: Socket, @MessageBody() payload: UserConnectedBody): void {
         this.logger.debug(`userConnected: ${client.id} ${JSON.stringify(payload)}`);
 
-        const socketAlreadyConnected = this.hosts.map(host => host.id).includes(client.id)
-            || this.rooms.map(room => room.id).includes(client.id);
-        if (socketAlreadyConnected) {
+        if (this.isSocketAlreadyConnected(client)) {
             return;
         }
 
@@ -74,8 +74,8 @@ export class ChatGateway implements OnGatewayDisconnect {
         }
     }
 
-    onNewClientConnected(client: Socket, payload: any) {
-        const room = { id: client.id, name: payload.name };
+    onNewClientConnected(client: Socket, payload: UserConnectedBody) {
+        const room: Room = { id: client.id, name: payload.name };
         this.rooms.push(room);
         client.join(client.id);
 
@@ -97,5 +97,11 @@ export class ChatGateway implements OnGatewayDisconnect {
 
         this.rooms = this.rooms.filter(room => room.id !== client.id);
         this.hosts = this.hosts.filter(host => host.id !== client.id);
+    }
+
+    isSocketAlreadyConnected(client: Socket) {
+       const clientInHosts = this.hosts.map(host => host.id).includes(client.id);
+       const clientInRooms = this.rooms.map(room => room.id).includes(client.id);
+       return clientInHosts || clientInRooms;
     }
 }
